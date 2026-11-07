@@ -101,12 +101,8 @@
     for (const [k, v] of params.entries()) {
       pairs.push(`${encodeURIComponent(k)}=${encodeURIComponent(v)}`);
     }
-    if (!pairs.length) return DEEP_LINK_BASE;
-    // Use hash fragment to match how Supabase delivers tokens
-    const fromHash = window.location.hash.slice(1);
-    return fromHash
-      ? `${DEEP_LINK_BASE}#${pairs.join('&')}`
-      : `${DEEP_LINK_BASE}?${pairs.join('&')}`;
+    // Always use query string — iOS custom URL schemes don't support hash fragments
+    return pairs.length ? `${DEEP_LINK_BASE}?${pairs.join('&')}` : DEEP_LINK_BASE;
   }
 
   function showMobileSuccess(deepLink) {
