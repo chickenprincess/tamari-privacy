@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirm your Tamari account</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: #f4f9f6;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px 32px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    }
+    .logo {
+      width: 64px;
+      height: 64px;
+      background: #f5c842;
+      border-radius: 16px;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+    }
+    h1 {
+      font-size: 22px;
+      color: #1a1a1a;
+      margin-bottom: 10px;
+    }
+    p {
+      font-size: 15px;
+      color: #555;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .btn {
+      display: inline-block;
+      background: #e8604a;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      width: 100%;
+      margin-bottom: 12px;
+    }
+    .btn-soft {
+      background: #f0f0f0;
+      color: #333;
+    }
+    .status {
+      font-size: 13px;
+      color: #888;
+      margin-top: 16px;
+    }
+    .success { color: #1b7a4b; }
+    .error-msg { color: #c0392b; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">🇬🇪</div>
+  <h1 id="title">Confirming your account…</h1>
+  <p id="message">Please wait while we verify your email.</p>
+  <div id="actions"></div>
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+  const DEEP_LINK_BASE = 'com.tamari.app://auth/callback';
+
+  function getParams() {
+    // Supabase puts tokens in the hash fragment
+    const hash = window.location.hash.slice(1);
+    const query = window.location.search.slice(1);
+    return new URLSearchParams(hash || query);
+  }
+
+  function isMobile() {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  }
+
+  function buildDeepLink(params) {
+    const pairs = [];
+    for (const [k, v] of params.entries()) {
+      pairs.push(`${encodeURIComponent(k)}=${encodeURIComponent(v)}`);
+    }
+    return pairs.length ? `${DEEP_LINK_BASE}?${pairs.join('&')}` : DEEP_LINK_BASE;
+  }
+
+  function showMobileSuccess(deepLink) {
+    document.getElementById('title').textContent = 'Open Tamari to continue';
+    document.getElementById('message').textContent = 'Tap the button below to open the Tamari app and complete your sign-in.';
+    document.getElementById('actions').innerHTML = `
+      <a href="${deepLink}" class="btn">Open Tamari</a>
+    `;
+    document.getElementById('status').textContent = "If the app doesn't open, make sure Tamari is installed on this device.";
+  }
+
+  function showDesktopMessage() {
+    document.getElementById('title').textContent = 'Open this link on your phone';
+    document.getElementById('message').textContent = 'Tamari is an iOS app. To confirm your account, open this email on your iPhone and tap the confirmation link there.';
+    document.getElementById('actions').innerHTML = `
+      <a href="https://apps.apple.com/app/id6811729498" class="btn">Download Tamari on the App Store</a>
+    `;
+    document.getElementById('status').textContent = 'Already have the app? Open this page on your iPhone.';
+  }
+
+  function showError() {
+    document.getElementById('title').textContent = 'Something went wrong';
+    document.getElementById('message').textContent = 'This confirmation link may have expired. Please try signing in to Tamari and request a new confirmation email.';
+    document.getElementById('actions').innerHTML = '';
+    document.getElementById('status').className = 'status error-msg';
+    document.getElementById('status').textContent = 'Confirmation links expire after 24 hours.';
+  }
+
+  // Main logic
+  const params = getParams();
+  const hasToken = params.has('access_token') || params.has('token') || params.has('code');
+
+  if (!hasToken) {
+    showError();
+  } else if (isMobile()) {
+    const deepLink = buildDeepLink(params);
+    // Try to open the app automatically
+    window.location.href = deepLink;
+    // Show the button after a short delay as fallback
+    setTimeout(() => showMobileSuccess(deepLink), 500);
+  } else {
+    showDesktopMessage();
+  }
+</script>
+</body>
+</html>
