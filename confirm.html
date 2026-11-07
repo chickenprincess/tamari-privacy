@@ -85,8 +85,14 @@
 <script>
   const DEEP_LINK_BASE = 'com.tamari.app://auth/callback';
 
+  function getRawSuffix() {
+    // Pass the raw query or hash straight through to the deep link
+    const hash = window.location.hash; // includes the #
+    const query = window.location.search; // includes the ?
+    return hash || query || '';
+  }
+
   function getParams() {
-    // Supabase puts tokens in the hash fragment
     const hash = window.location.hash.slice(1);
     const query = window.location.search.slice(1);
     return new URLSearchParams(hash || query);
@@ -96,13 +102,13 @@
     return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   }
 
-  function buildDeepLink(params) {
-    const pairs = [];
-    for (const [k, v] of params.entries()) {
-      pairs.push(`${encodeURIComponent(k)}=${encodeURIComponent(v)}`);
+  function buildDeepLink() {
+    const suffix = getRawSuffix();
+    // Convert hash to query string for iOS custom URL scheme compatibility
+    if (suffix.startsWith('#')) {
+      return DEEP_LINK_BASE + '?' + suffix.slice(1);
     }
-    // Always use query string — iOS custom URL schemes don't support hash fragments
-    return pairs.length ? `${DEEP_LINK_BASE}?${pairs.join('&')}` : DEEP_LINK_BASE;
+    return DEEP_LINK_BASE + suffix;
   }
 
   function showMobileSuccess(deepLink) {
@@ -133,12 +139,13 @@
 
   // Main logic
   const params = getParams();
-  const hasToken = params.has('access_token') || params.has('token') || params.has('code');
+  const hasToken = params.has('access_token') || params.has('token')
+                || params.has('code') || params.has('token_hash');
 
   if (!hasToken) {
     showError();
   } else if (isMobile()) {
-    const deepLink = buildDeepLink(params);
+    const deepLink = buildDeepLink();
     // Try to open the app automatically
     window.location.href = deepLink;
     // Show the button after a short delay as fallback
